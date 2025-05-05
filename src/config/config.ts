@@ -1,0 +1,14 @@
+// Cấu hình ứng dụng
+export const config = {
+  server: {
+    port: 3000,
+    host: '0.0.0.0'
+  },
+  mongodb: {
+    url: "mongodb+srv://tdnhathuy:gR5IFS2o2fJdwOUG@dummy-cluster.rubf9uh.mongodb.net/?retryWrites=true&w=majority&appName=dummy-cluster",
+    dbName: "sample_mflix"
+  },
+  swagger: {
+    routePrefix: "/docs"
+  }
+} 

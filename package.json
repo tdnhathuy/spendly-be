@@ -5,7 +5,7 @@
   "main": "index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "ts-node src/index.ts",
+    "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node build/index.js"
   },
@@ -14,11 +14,19 @@
   "license": "ISC",
   "packageManager": "pnpm@10.8.0",
   "dependencies": {
-    "fastify": "^5.3.2"
+    "@fastify/mongodb": "^9.0.2",
+    "@fastify/swagger": "^9.5.0",
+    "@fastify/swagger-ui": "^5.2.2",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1",
+    "fastify": "^5.3.2",
+    "fastify-plugin": "^5.0.1",
+    "mongodb": "^6.16.0"
   },
   "devDependencies": {
     "@types/node": "^22.15.3",
     "ts-node": "^10.9.2",
+    "tsx": "^4.19.3",
     "typescript": "^5.8.3"
   }
 }
