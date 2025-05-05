@@ -1,7 +1,5 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import Fastify from "fastify";
-import { registerMongoDB } from "./plugins/mongodb";
-import { registerSwagger } from "./plugins/swagger";
 import autoload from "@fastify/autoload";
 import path from "path";
 

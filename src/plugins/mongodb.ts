@@ -1,5 +1,5 @@
 import fastifyMongo from "@fastify/mongodb";
-import { FastifyInstance } from "fastify";
+import { FastifyInstance, FastifyPluginAsync } from "fastify";
 import { FastifyMongoObject, FastifyMongoNestedObject } from "@fastify/mongodb";
 import { config } from "../config/config";
 
@@ -10,10 +10,12 @@ declare module "fastify" {
   }
 }
 
-export async function registerMongoDB(fastify: FastifyInstance) {
+const mongodbPlugin: FastifyPluginAsync = async (fastify) => {
   await fastify.register(fastifyMongo, {
     url: config.mongodb.url,
     database: config.mongodb.dbName,
     forceClose: true,
   });
-} 
+};
+
+export default mongodbPlugin; 
