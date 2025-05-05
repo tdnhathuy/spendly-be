@@ -1,7 +1,7 @@
 // Cấu hình ứng dụng
 export const config = {
   server: {
-    port: 3000,
+    port: 2703,
     host: '0.0.0.0'
   },
   mongodb: {

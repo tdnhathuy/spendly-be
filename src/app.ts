@@ -1,26 +1,28 @@
+import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import Fastify from "fastify";
-import { registerSwagger } from "./plugins/swagger";
 import { registerMongoDB } from "./plugins/mongodb";
-import { registerAllRoutes } from "./features";
+import { registerSwagger } from "./plugins/swagger";
+import autoload from "@fastify/autoload";
+import path from "path";
 
 // Khởi tạo Fastify app
 export async function buildApp() {
-  const fastify = Fastify({ 
-    logger: false,
-    ajv: {
-      customOptions: {
-        strict: false, // Tắt strict mode để chấp nhận keywords như example
-        allErrors: true
-      }
-    }
-  });
+	const fastify = Fastify({
+		logger: false,
+		ajv: {
+			customOptions: {
+				strict: false, // Tắt strict mode để chấp nhận keywords như example
+				allErrors: true,
+			},
+		},
+	}).withTypeProvider<TypeBoxTypeProvider>();
 
-  // Đăng ký plugins
-  await registerSwagger(fastify);
-  await registerMongoDB(fastify);
+	fastify.register(autoload, {
+		dir: path.join(__dirname, "plugins"),
+	});
+	fastify.register(autoload, {
+		dir: path.join(__dirname, "modules"),
+	});
 
-  // Đăng ký tất cả các routes
-  registerAllRoutes(fastify);
-
-  return fastify;
+	return fastify;
 }
