@@ -1,35 +1,33 @@
 import { FastifyInstance } from "fastify";
-import { getMongoDB } from "../../helper/func.helper";
-import { ObjectId } from "mongodb";
+import {
+	findAllDocuments,
+	findDocumentById,
+	insertDocument,
+	updateDocument,
+	deleteDocumentById,
+} from "../../helper/db.helper";
+
+const COLLECTION_NAME = "profile";
+
 export const ServiceProfile = {
 	getAll: async (server: FastifyInstance) => {
-		const db = getMongoDB(server);
-		const profiles = await db.collection("profile").find().toArray();
-		return profiles;
+		return await findAllDocuments(server, COLLECTION_NAME);
 	},
 
 	getById: async (server: FastifyInstance, id: string) => {
-		const db = getMongoDB(server);
-		const profile = await db.collection("profile").findOne({ _id: new ObjectId(id) });
-		return profile;
+		return await findDocumentById(server, COLLECTION_NAME, id);
 	},
 
 	create: async (server: FastifyInstance, body: any) => {
-		const db = getMongoDB(server);
-		body.wallets = [];
-		const profile = await db.collection("profile").insertOne(body);
-		return profile;
+		const data = { ...body, wallets: [] };
+		return await insertDocument(server, COLLECTION_NAME, data);
 	},
 
 	update: async (server: FastifyInstance, id: string, body: any) => {
-		const db = getMongoDB(server);
-		const profile = await db.collection("profile").updateOne({ _id: new ObjectId(id) }, { $set: body });
-		return profile;
+		return await updateDocument(server, COLLECTION_NAME, id, body);
 	},
 
 	delete: async (server: FastifyInstance, id: string) => {
-		const db = getMongoDB(server);
-		const profile = await db.collection("profile").deleteOne({ _id: new ObjectId(id) });
-		return profile;
+		return await deleteDocumentById(server, COLLECTION_NAME, id);
 	},
 };
