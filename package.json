@@ -1,22 +1,17 @@
 {
-  "name": "spendly-be",
+  "name": "vercel-fastify-deploy-serverless",
   "version": "1.0.0",
   "description": "",
-  "main": "index.ts",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "tsx watch src/index.ts",
+    "vercel": "vercel dev",
     "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/index.ts",
     "start": "node build/index.js",
-    "vercel-build": "node vercel-build.js"
+    "vercel-build": "echo 'Skipping build step'",
+    "gen-module": "npx ts-node scripts/generate-module.ts"
   },
-  "engines": {
-    "node": ">=18.x"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "packageManager": "pnpm@10.8.0",
   "dependencies": {
     "@fastify/autoload": "^6.3.0",
     "@fastify/mongodb": "^9.0.2",
@@ -27,12 +22,14 @@
     "@sinclair/typebox": "^0.34.33",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "dotenv": "^16.3.1",
     "fastify": "^5.3.2",
     "fastify-plugin": "^5.0.1",
     "mongodb": "^6.16.0"
   },
   "devDependencies": {
-    "@types/node": "^22.15.3",
+    "@types/node": "^22.15.14",
+    "@vercel/node": "^2.15.8",
     "ts-node": "^10.9.2",
     "tsx": "^4.19.3",
     "typescript": "^5.8.3"

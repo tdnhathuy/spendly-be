@@ -5,39 +5,43 @@ import path from "path";
 /* ------------------ Lấy tên module ------------------ */
 const [, , rawName] = process.argv;
 if (!rawName) {
-	console.error("❌  Thiếu tên module.\n   Ví dụ: ts-node generate-module.ts profile");
-	process.exit(1);
+  console.error(
+    "❌  Thiếu tên module.\n   Ví dụ: ts-node generate-module.ts profile"
+  );
+  process.exit(1);
 }
 
 const kebab = rawName.toLowerCase();
 const pascal = kebab
-	.split("-")
-	.map((s) => s[0].toUpperCase() + s.slice(1))
-	.join("");
+  .split("-")
+  .map((s) => s[0].toUpperCase() + s.slice(1))
+  .join("");
 
 /* --------------- Tạo thư mục module ----------------- */
-const baseDir = path.join(process.cwd(), "src", "modules", kebab);
+const baseDir = path.join(__dirname, '..', 'src', 'modules', kebab);
 if (fs.existsSync(baseDir)) {
-	console.error(`⚠️  Module "${kebab}" đã tồn tại. Hãy xoá hoặc đổi tên rồi chạy lại.`);
-	process.exit(1);
+  console.error(
+    `⚠️  Module "${kebab}" đã tồn tại. Hãy xoá hoặc đổi tên rồi chạy lại.`
+  );
+  process.exit(1);
 }
 fs.mkdirSync(baseDir, { recursive: true });
 console.log(`📁  Đã tạo ${baseDir}`);
 
 /* --------------- Viết các file ---------------------- */
 for (const [file, content] of Object.entries(templates(kebab, pascal))) {
-	fs.writeFileSync(path.join(baseDir, file), content.trimStart());
-	console.log(`  ➜  ${file}`);
+  fs.writeFileSync(path.join(baseDir, file), content.trimStart());
+  console.log(`  ➜  ${file}`);
 }
 
 /* ==================================================== */
 /*            Hàm sinh template cho từng file           */
 /* ==================================================== */
 function templates(kebab: string, pascal: string): Record<string, string> {
-	const TAG = `"${pascal}"`; // tag cho swagger hoặc plugin docs
-	return {
-		/* ---------- routes.ts ---------- */
-		[`${kebab}.route.ts`]: `
+  const TAG = `"${pascal}"`; // tag cho swagger hoặc plugin docs
+  return {
+    /* ---------- routes.ts ---------- */
+    [`${kebab}.route.ts`]: `
 // ${kebab}/routes.ts
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { FastifyInstance } from "fastify";
@@ -54,8 +58,8 @@ export default async function ${kebab}Routes(app: FastifyInstance) {
 }
 `,
 
-		/* ---------- controller.ts ---------- */
-		[`${kebab}.controller.ts`]: `
+    /* ---------- controller.ts ---------- */
+    [`${kebab}.controller.ts`]: `
 // ${kebab}/controller.ts
 import { FastifyReply, FastifyRequest } from "fastify";
 import { Service${pascal} } from "./${kebab}.service";
@@ -87,8 +91,8 @@ export default {
 };
 `,
 
-		/* ---------- service.ts ---------- */
-		[`${kebab}.service.ts`]: `
+    /* ---------- service.ts ---------- */
+    [`${kebab}.service.ts`]: `
 // ${kebab}/service.ts
 import { FastifyInstance } from "fastify";
 import {
@@ -126,8 +130,8 @@ export const Service${pascal} = {
 };
 `,
 
-		/* ---------- schema.ts ---------- */
-		[`${kebab}.schema.ts`]: `
+    /* ---------- schema.ts ---------- */
+    [`${kebab}.schema.ts`]: `
 // ${kebab}/schema.ts
 import { Static, Type } from "@sinclair/typebox";
 
@@ -141,5 +145,5 @@ export type ${pascal} = Static<typeof Schema${pascal}>;
 export type ${pascal}Create = Omit<${pascal}, "_id" | "createdAt" | "updatedAt">;
 export type ${pascal}Update = Partial<Omit<${pascal}, "_id">>;
 `,
-	};
+  };
 }
