@@ -2,20 +2,20 @@
 import fs from "fs";
 import path from "path";
 
-/* -------------------- Nhận tên module -------------------- */
+/* ------------------ Lấy tên module ------------------ */
 const [, , rawName] = process.argv;
 if (!rawName) {
-	console.error("❌  Thiếu tên module.\n   Ví dụ: ts-node generate-module.ts products");
+	console.error("❌  Thiếu tên module.\n   Ví dụ: ts-node generate-module.ts profile");
 	process.exit(1);
 }
 
 const kebab = rawName.toLowerCase();
 const pascal = kebab
 	.split("-")
-	.map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+	.map((s) => s[0].toUpperCase() + s.slice(1))
 	.join("");
 
-/* -------------------- Tạo thư mục -------------------- */
+/* --------------- Tạo thư mục module ----------------- */
 const baseDir = path.join(process.cwd(), "src", "modules", kebab);
 if (fs.existsSync(baseDir)) {
 	console.error(`⚠️  Module "${kebab}" đã tồn tại. Hãy xoá hoặc đổi tên rồi chạy lại.`);
@@ -24,16 +24,17 @@ if (fs.existsSync(baseDir)) {
 fs.mkdirSync(baseDir, { recursive: true });
 console.log(`📁  Đã tạo ${baseDir}`);
 
-/* -------------------- Ghi file -------------------- */
-Object.entries(templates(kebab, pascal)).forEach(([file, content]) => {
+/* --------------- Viết các file ---------------------- */
+for (const [file, content] of Object.entries(templates(kebab, pascal))) {
 	fs.writeFileSync(path.join(baseDir, file), content.trimStart());
 	console.log(`  ➜  ${file}`);
-});
+}
 
-/* ======================================================== */
-/*              Hàm tạo template cho từng file              */
-/* ======================================================== */
+/* ==================================================== */
+/*            Hàm sinh template cho từng file           */
+/* ==================================================== */
 function templates(kebab: string, pascal: string): Record<string, string> {
+	const TAG = `"${pascal}"`; // tag cho swagger hoặc plugin docs
 	return {
 		/* ---------- routes.ts ---------- */
 		"routes.ts": `
@@ -70,7 +71,7 @@ export default {
     req: FastifyRequest<{ Params: ParamsIdType }>,
     reply: FastifyReply
   ) => {
-    const data = await service.getById(req.server, +req.params.id);
+    const data = await service.getById(req.server, req.params.id);
     data ? reply.send(data) : reply.code(404).send({ message: '${pascal} not found' });
   },
 
@@ -78,14 +79,18 @@ export default {
     req: FastifyRequest<{ Body: CreateType }>,
     reply: FastifyReply
   ) => {
-    reply.code(201).send(await service.create(req.server, req.body));
+    // Ép kiểu để TypeScript không báo lỗi về unknown type
+    const body = req.body as CreateType;
+    reply.code(201).send(await service.create(req.server, body));
   },
 
   update: async (
     req: FastifyRequest<{ Params: ParamsIdType; Body: UpdateType }>,
     reply: FastifyReply
   ) => {
-    const data = await service.update(req.server, +req.params.id, req.body);
+    // Ép kiểu để TypeScript không báo lỗi về unknown type
+    const body = req.body as UpdateType;
+    const data = await service.update(req.server, req.params.id, body);
     data ? reply.send(data) : reply.code(404).send({ message: '${pascal} not found' });
   },
 
@@ -93,7 +98,7 @@ export default {
     req: FastifyRequest<{ Params: ParamsIdType }>,
     reply: FastifyReply
   ) => {
-    const ok = await service.del(req.server, +req.params.id);
+    const ok = await service.del(req.server, req.params.id);
     ok ? reply.send({ success: true }) : reply.code(404).send({ message: '${pascal} not found' });
   }
 };
@@ -109,16 +114,16 @@ export default {
   getAll : (f: FastifyInstance): Promise<${pascal}[]> =>
     model.findAll(f),
 
-  getById: (f: FastifyInstance, id: number): Promise<${pascal}|null> =>
+  getById: (f: FastifyInstance, id: string): Promise<${pascal}|null> =>
     model.findById(f, id),
 
   create : (f: FastifyInstance, d: ${pascal}Create): Promise<${pascal}> =>
     model.create(f, d),
 
-  update : (f: FastifyInstance, id: number, d: ${pascal}Update): Promise<${pascal}|null> =>
+  update : (f: FastifyInstance, id: string, d: ${pascal}Update): Promise<${pascal}|null> =>
     model.update(f, id, d),
 
-  del    : (f: FastifyInstance, id: number): Promise<boolean> =>
+  del    : (f: FastifyInstance, id: string): Promise<boolean> =>
     model.del(f, id)
 };
 `,
@@ -127,113 +132,153 @@ export default {
 		"schema.ts": `
 // ${kebab}/schema.ts
 import { Type, Static } from '@sinclair/typebox';
+import { Document, WithId } from 'mongodb';
 
-const ${pascal} = Type.Object({
-  id:        Type.Number(),
-  name:      Type.String(),
+export const ObjectIdStr = Type.String({ pattern: "^[0-9a-fA-F]{24}$" });
+
+// Định nghĩa tất cả các trường có thể có trong ${pascal}
+export const ${pascal}Fields = {
+  _id: ObjectIdStr,
+  name: Type.String(),
   createdAt: Type.Optional(Type.String({ format: 'date-time' })),
-  updatedAt: Type.Optional(Type.String({ format: 'date-time' }))
-});
+  updatedAt: Type.Optional(Type.String({ format: 'date-time' })),
+  // Thêm các trường mới ở đây, tất cả ở một nơi duy nhất
+};
 
-export const ParamsId  = Type.Object({ id: Type.String() });
-export const CreateReq = Type.Omit(${pascal}, ['id', 'createdAt', 'updatedAt']);
+// Các trường tùy chọn, sẽ không bắt buộc trong schema CREATE
+export const OptionalFields = ['createdAt', 'updatedAt'];
+// Các trường tự động, sẽ không được yêu cầu trong schema CREATE
+export const AutoFields = ['_id'];
+
+// Tạo ${pascal} Schema từ các trường
+const ${pascal} = Type.Object(${pascal}Fields);
+
+// Xác định trường nào sẽ được yêu cầu khi tạo mới (trừ _id và các trường tự động/tùy chọn)
+const createFields = Object.entries(${pascal}Fields)
+  .filter(([key]) => !AutoFields.includes(key) && !OptionalFields.includes(key))
+  .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
+
+export const ParamsId = Type.Object({ id: ObjectIdStr });
+export const CreateReq = Type.Object(createFields);
 export const UpdateReq = Type.Partial(CreateReq);
 
+export type ${pascal}Type = Static<typeof ${pascal}>;
 export type ParamsIdType = Static<typeof ParamsId>;
-export type CreateType   = Static<typeof CreateReq>;
-export type UpdateType   = Static<typeof UpdateReq>;
+export type CreateType = Static<typeof CreateReq>;
+export type UpdateType = Static<typeof UpdateReq>;
+
+// Tạo hàm tiện ích để map document MongoDB sang kiểu dữ liệu TypeScript
+export function createDocumentMapper<T extends Record<string, any>>(fieldsList: string[]) {
+  return (doc: WithId<Document>): T => {
+    const result: Record<string, any> = {};
+    
+    // Chuyển đổi _id thành chuỗi hex
+    if (doc._id) {
+      result._id = doc._id.toHexString();
+    }
+    
+    // Sao chép tất cả các trường còn lại
+    fieldsList.forEach(field => {
+      if (field !== '_id' && field in doc) {
+        result[field] = doc[field];
+      }
+    });
+    
+    return result as T;
+  };
+}
+
+// Tạo hàm mapper cho ${pascal}
+export const create${pascal}Mapper = () => 
+  createDocumentMapper<${pascal}Type>(Object.keys(${pascal}Fields));
 
 export default {
-  getAll : { response: { 200: Type.Array(${pascal}) }, tags: ["${pascal}"] },
+  getAll : { response: { 200: Type.Array(${pascal}) }, tags: [${TAG}] },
 
   getById: {
-    tags: ["${pascal}"],
     params: ParamsId,
-    response: { 200: ${pascal}, 404: err() }
+    response: { 200: ${pascal}, 404: error() },
+    tags: [${TAG}]
   },
 
   create : {
-    tags: ["${pascal}"],
     body: CreateReq,
-    response: { 201: ${pascal} }
+    response: { 201: ${pascal} },
+    tags: [${TAG}]
   },
 
   update : {
-    tags: ["${pascal}"],
     params: ParamsId,
     body: UpdateReq,
-    response: { 200: ${pascal}, 404: err() }
+    response: { 200: ${pascal}, 404: error() },
+    tags: [${TAG}]
   },
 
   del: {
-    tags: ["${pascal}"],
     params: ParamsId,
-    response: { 200: Type.Object({ success: Type.Boolean() }), 404: err() }
+    response: { 200: Type.Object({ success: Type.Boolean() }), 404: error() },
+    tags: [${TAG}]
   }
 };
 
-function err() { return Type.Object({ message: Type.String() }); }
+function error() { return Type.Object({ message: Type.String() }); }
 `,
 
 		/* ---------- model.ts ---------- */
 		"model.ts": `
 // ${kebab}/model.ts
 import { FastifyInstance } from 'fastify';
-import { Collection, Document, WithId } from 'mongodb';
+import { Collection, ObjectId, WithId, Document } from 'mongodb';
+import { ${pascal}Type, CreateType, UpdateType, create${pascal}Mapper } from './schema';
 
-export interface ${pascal} {
-  id: number;
-  name: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-export type ${pascal}Create = Omit<${pascal}, 'id'|'createdAt'|'updatedAt'>;
-export type ${pascal}Update = Partial<${pascal}Create>;
+export type ${pascal} = ${pascal}Type;
+export type ${pascal}Create = CreateType;
+export type ${pascal}Update = UpdateType;
+
+// Tạo mapper function từ schema
+const map${pascal} = create${pascal}Mapper();
 
 export default {
   async findAll(f: FastifyInstance): Promise<${pascal}[]> {
-    return (await col(f).find().toArray()).map(map);
+    const docs = await collection(f).find().toArray();
+    return docs.map(map${pascal});
   },
 
-  async findById(f: FastifyInstance, id: number): Promise<${pascal}|null> {
-    const doc = await col(f).findOne({ id });
-    return doc ? map(doc) : null;
+  async findById(f: FastifyInstance, id: string): Promise<${pascal}|null> {
+    const doc = await collection(f).findOne({ _id: new ObjectId(id) });
+    return doc ? map${pascal}(doc) : null;
   },
 
   async create(f: FastifyInstance, data: ${pascal}Create): Promise<${pascal}> {
     const now = new Date().toISOString();
-    const item: ${pascal} = { ...data, id: Date.now(), createdAt: now, updatedAt: now };
-    await col(f).insertOne(item);
-    return item;
+    const item = { ...data, createdAt: now, updatedAt: now };
+    const res = await collection(f).insertOne(item);
+    
+    return map${pascal}({
+      _id: res.insertedId,
+      ...item
+    } as WithId<Document>);
   },
 
-  async update(f: FastifyInstance, id: number, data: ${pascal}Update): Promise<${pascal}|null> {
+  async update(f: FastifyInstance, id: string, data: ${pascal}Update): Promise<${pascal}|null> {
     const now = new Date().toISOString();
-    const r = await col(f).findOneAndUpdate(
-      { id },
+    const r = await collection(f).findOneAndUpdate(
+      { _id: new ObjectId(id) },
       { $set: { ...data, updatedAt: now } },
       { returnDocument: 'after' }
     );
-    return r ? map(r) : null;
+    return r ? map${pascal}(r) : null;
   },
 
-  async del(f: FastifyInstance, id: number): Promise<boolean> {
-    const res = await col(f).deleteOne({ id });
+  async del(f: FastifyInstance, id: string): Promise<boolean> {
+    const res = await collection(f).deleteOne({ _id: new ObjectId(id) });
     return res.deletedCount === 1;
   }
 };
 
-function col(f: FastifyInstance): Collection {
+function collection(f: FastifyInstance): Collection {
   if (!f.mongo?.db) throw new Error('MongoDB connection not ready');
   return f.mongo.db.collection('${kebab}');
-}
-function map(doc: WithId<Document>): ${pascal} {
-  return {
-    id: doc.id,
-    name: doc.name,
-    createdAt: doc.createdAt,
-    updatedAt: doc.updatedAt
-  };
 }
 `,
 	};
