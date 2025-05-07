@@ -6,7 +6,9 @@ import { setupPlugins } from "./plugins";
 
 export async function buildApp() {
 	const fastify = Fastify({
-		logger: false,
+		logger: process.env.NODE_ENV !== 'production',
+		disableRequestLogging: process.env.NODE_ENV === 'production',
+		trustProxy: true
 	}).withTypeProvider<TypeBoxTypeProvider>();
 
 	await setupPlugins(fastify);
@@ -15,6 +17,11 @@ export async function buildApp() {
 	await fastify.register(autoload, {
 		dir: makeDir("modules"),
 		options: { prefix: "/api" },
+	});
+
+	// Thêm route mặc định để kiểm tra server
+	fastify.get('/', async () => {
+		return { status: 'ok', message: 'Server is running' };
 	});
 
 	return fastify;
