@@ -1,10 +1,10 @@
-// profile/routes.ts
+// transaction/routes.ts
 import { FastifyInstance } from 'fastify';
 import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import controller from './controller';
 import schema from './schema';
 
-export default async function profileRoutes(app: FastifyInstance) {
+export default async function transactionRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<TypeBoxTypeProvider>();
 
   server.get('/',      { schema: schema.getAll },  controller.getAll);

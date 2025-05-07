@@ -1,26 +1,20 @@
 // profile/service.ts
 import { FastifyInstance } from 'fastify';
-import model from './model';
-import { Profile, ProfileCreate, ProfileUpdate } from './model';
+import model, { Profile, ProfileCreate, ProfileUpdate } from './model';
 
 export default {
-  getAll: async (fastify: FastifyInstance): Promise<Profile[]> => {
-    return await model.findAll(fastify);
-  },
-  
-  getById: async (fastify: FastifyInstance, id: number): Promise<Profile | null> => {
-    return await model.findById(fastify, id);
-  },
-  
-  create: async (fastify: FastifyInstance, data: ProfileCreate): Promise<Profile> => {
-    return await model.create(fastify, data);
-  },
-  
-  update: async (fastify: FastifyInstance, id: number, data: ProfileUpdate): Promise<Profile | null> => {
-    return await model.update(fastify, id, data);
-  },
-  
-  delete: async (fastify: FastifyInstance, id: number): Promise<boolean> => {
-    return await model.delete(fastify, id);
-  }
+  getAll : (f: FastifyInstance): Promise<Profile[]> =>
+    model.findAll(f),
+
+  getById: (f: FastifyInstance, id: number): Promise<Profile|null> =>
+    model.findById(f, id),
+
+  create : (f: FastifyInstance, d: ProfileCreate): Promise<Profile> =>
+    model.create(f, d),
+
+  update : (f: FastifyInstance, id: number, d: ProfileUpdate): Promise<Profile|null> =>
+    model.update(f, id, d),
+
+  del    : (f: FastifyInstance, id: number): Promise<boolean> =>
+    model.del(f, id)
 };

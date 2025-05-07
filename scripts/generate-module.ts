@@ -1,358 +1,240 @@
 #!/usr/bin/env ts-node
-
 import fs from "fs";
 import path from "path";
 
-const moduleName = process.argv[2];
-
-if (!moduleName) {
-	console.error("❌ Please provide a module name.\nUsage: ts-node generate-module.ts <module-name>");
+/* -------------------- Nhận tên module -------------------- */
+const [, , rawName] = process.argv;
+if (!rawName) {
+	console.error("❌  Thiếu tên module.\n   Ví dụ: ts-node generate-module.ts products");
 	process.exit(1);
 }
 
-const baseDir = path.join(__dirname, "..", "src", "modules", moduleName);
-const capitalized = capitalize(moduleName);
+const kebab = rawName.toLowerCase();
+const pascal = kebab
+	.split("-")
+	.map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+	.join("");
 
-const files: Record<string, string> = {
-	"routes.ts": `// ${moduleName}/routes.ts
+/* -------------------- Tạo thư mục -------------------- */
+const baseDir = path.join(process.cwd(), "src", "modules", kebab);
+if (fs.existsSync(baseDir)) {
+	console.error(`⚠️  Module "${kebab}" đã tồn tại. Hãy xoá hoặc đổi tên rồi chạy lại.`);
+	process.exit(1);
+}
+fs.mkdirSync(baseDir, { recursive: true });
+console.log(`📁  Đã tạo ${baseDir}`);
+
+/* -------------------- Ghi file -------------------- */
+Object.entries(templates(kebab, pascal)).forEach(([file, content]) => {
+	fs.writeFileSync(path.join(baseDir, file), content.trimStart());
+	console.log(`  ➜  ${file}`);
+});
+
+/* ======================================================== */
+/*              Hàm tạo template cho từng file              */
+/* ======================================================== */
+function templates(kebab: string, pascal: string): Record<string, string> {
+	return {
+		/* ---------- routes.ts ---------- */
+		"routes.ts": `
+// ${kebab}/routes.ts
 import { FastifyInstance } from 'fastify';
 import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import controller from './controller';
 import schema from './schema';
 
-export default async function ${moduleName}Routes(fastify: FastifyInstance) {
-  const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
-  
-  server.get('/', {
-    schema: schema.getAll
-  }, controller.getAll);
-  
-  server.get('/:id', {
-    schema: schema.getById
-  }, controller.getById);
-  
-  server.post('/', {
-    schema: schema.create
-  }, controller.create);
-  
-  server.put('/:id', {
-    schema: schema.update
-  }, controller.update);
-  
-  server.delete('/:id', {
-    schema: schema.delete
-  }, controller.delete);
+export default async function ${kebab}Routes(app: FastifyInstance) {
+  const server = app.withTypeProvider<TypeBoxTypeProvider>();
+
+  server.get('/',      { schema: schema.getAll },  controller.getAll);
+  server.get('/:id',   { schema: schema.getById }, controller.getById);
+  server.post('/',     { schema: schema.create },  controller.create);
+  server.put('/:id',   { schema: schema.update },  controller.update);
+  server.delete('/:id',{ schema: schema.del },     controller.del);
 }
 `,
 
-	"controller.ts": `// ${moduleName}/controller.ts
+		/* ---------- controller.ts ---------- */
+		"controller.ts": `
+// ${kebab}/controller.ts
 import { FastifyReply, FastifyRequest } from 'fastify';
 import service from './service';
-import { 
-  ParamsWithIdType,
-  CreateRequestType,
-  UpdateRequestType
-} from './schema';
+import { ParamsIdType, CreateType, UpdateType } from './schema';
 
 export default {
-  getAll: async (
-    req: FastifyRequest,
-    reply: FastifyReply
-  ) => {
-    const data = await service.getAll(req.server);
-    reply.send(data);
+  getAll: async (req: FastifyRequest, reply: FastifyReply) => {
+    reply.send(await service.getAll(req.server));
   },
-  
+
   getById: async (
-    req: FastifyRequest<{ Params: ParamsWithIdType }>,
+    req: FastifyRequest<{ Params: ParamsIdType }>,
     reply: FastifyReply
   ) => {
-    const { id } = req.params;
-    const data = await service.getById(req.server, parseInt(id, 10));
-    
-    if (!data) {
-      reply.code(404).send({ message: '${capitalized} not found' });
-      return;
-    }
-    
-    reply.send(data);
+    const data = await service.getById(req.server, +req.params.id);
+    data ? reply.send(data) : reply.code(404).send({ message: '${pascal} not found' });
   },
-  
+
   create: async (
-    req: FastifyRequest<{ Body: CreateRequestType }>,
+    req: FastifyRequest<{ Body: CreateType }>,
     reply: FastifyReply
   ) => {
-    const data = await service.create(req.server, req.body);
-    reply.code(201).send(data);
+    reply.code(201).send(await service.create(req.server, req.body));
   },
-  
+
   update: async (
-    req: FastifyRequest<{ Params: ParamsWithIdType, Body: UpdateRequestType }>,
+    req: FastifyRequest<{ Params: ParamsIdType; Body: UpdateType }>,
     reply: FastifyReply
   ) => {
-    const { id } = req.params;
-    const data = await service.update(req.server, parseInt(id, 10), req.body);
-    
-    if (!data) {
-      reply.code(404).send({ message: '${capitalized} not found' });
-      return;
-    }
-    
-    reply.send(data);
+    const data = await service.update(req.server, +req.params.id, req.body);
+    data ? reply.send(data) : reply.code(404).send({ message: '${pascal} not found' });
   },
-  
-  delete: async (
-    req: FastifyRequest<{ Params: ParamsWithIdType }>,
+
+  del: async (
+    req: FastifyRequest<{ Params: ParamsIdType }>,
     reply: FastifyReply
   ) => {
-    const { id } = req.params;
-    const success = await service.delete(req.server, parseInt(id, 10));
-    
-    if (!success) {
-      reply.code(404).send({ message: '${capitalized} not found' });
-      return;
-    }
-    
-    reply.code(200).send({ success: true });
+    const ok = await service.del(req.server, +req.params.id);
+    ok ? reply.send({ success: true }) : reply.code(404).send({ message: '${pascal} not found' });
   }
 };
 `,
 
-	"service.ts": `// ${moduleName}/service.ts
+		/* ---------- service.ts ---------- */
+		"service.ts": `
+// ${kebab}/service.ts
 import { FastifyInstance } from 'fastify';
-import model from './model';
-import { ${capitalized}, ${capitalized}Create, ${capitalized}Update } from './model';
+import model, { ${pascal}, ${pascal}Create, ${pascal}Update } from './model';
 
 export default {
-  getAll: async (fastify: FastifyInstance): Promise<${capitalized}[]> => {
-    return await model.findAll(fastify);
-  },
-  
-  getById: async (fastify: FastifyInstance, id: number): Promise<${capitalized} | null> => {
-    return await model.findById(fastify, id);
-  },
-  
-  create: async (fastify: FastifyInstance, data: ${capitalized}Create): Promise<${capitalized}> => {
-    return await model.create(fastify, data);
-  },
-  
-  update: async (fastify: FastifyInstance, id: number, data: ${capitalized}Update): Promise<${capitalized} | null> => {
-    return await model.update(fastify, id, data);
-  },
-  
-  delete: async (fastify: FastifyInstance, id: number): Promise<boolean> => {
-    return await model.delete(fastify, id);
-  }
+  getAll : (f: FastifyInstance): Promise<${pascal}[]> =>
+    model.findAll(f),
+
+  getById: (f: FastifyInstance, id: number): Promise<${pascal}|null> =>
+    model.findById(f, id),
+
+  create : (f: FastifyInstance, d: ${pascal}Create): Promise<${pascal}> =>
+    model.create(f, d),
+
+  update : (f: FastifyInstance, id: number, d: ${pascal}Update): Promise<${pascal}|null> =>
+    model.update(f, id, d),
+
+  del    : (f: FastifyInstance, id: number): Promise<boolean> =>
+    model.del(f, id)
 };
 `,
 
-	"schema.ts": `// ${moduleName}/schema.ts
-import { Type } from '@sinclair/typebox';
-import { Static } from '@sinclair/typebox';
+		/* ---------- schema.ts ---------- */
+		"schema.ts": `
+// ${kebab}/schema.ts
+import { Type, Static } from '@sinclair/typebox';
 
-const ${capitalized}Type = Type.Object({
-  id: Type.Number(),
-  name: Type.String(),
+const ${pascal} = Type.Object({
+  id:        Type.Number(),
+  name:      Type.String(),
   createdAt: Type.Optional(Type.String({ format: 'date-time' })),
   updatedAt: Type.Optional(Type.String({ format: 'date-time' }))
 });
 
-export const ParamsWithId = Type.Object({
-  id: Type.String()
-});
+export const ParamsId  = Type.Object({ id: Type.String() });
+export const CreateReq = Type.Omit(${pascal}, ['id', 'createdAt', 'updatedAt']);
+export const UpdateReq = Type.Partial(CreateReq);
 
-export const GetAllResponse = Type.Array(${capitalized}Type);
-
-export const GetByIdResponse = ${capitalized}Type;
-
-export const CreateRequest = Type.Object({
-  name: Type.String()
-});
-
-export const CreateResponse = ${capitalized}Type;
-
-export const UpdateRequest = Type.Object({
-  name: Type.String()
-});
-
-export const UpdateResponse = ${capitalized}Type;
-
-export const DeleteResponse = Type.Object({
-  success: Type.Boolean()
-});
-
-export type ParamsWithIdType = Static<typeof ParamsWithId>;
-export type GetAllResponseType = Static<typeof GetAllResponse>;
-export type GetByIdResponseType = Static<typeof GetByIdResponse>;
-export type CreateRequestType = Static<typeof CreateRequest>;
-export type CreateResponseType = Static<typeof CreateResponse>;
-export type UpdateRequestType = Static<typeof UpdateRequest>;
-export type UpdateResponseType = Static<typeof UpdateResponse>;
-export type DeleteResponseType = Static<typeof DeleteResponse>;
+export type ParamsIdType = Static<typeof ParamsId>;
+export type CreateType   = Static<typeof CreateReq>;
+export type UpdateType   = Static<typeof UpdateReq>;
 
 export default {
-  getAll: {
-    response: {
-      200: GetAllResponse
-    }
-  },
-  
+  getAll : { response: { 200: Type.Array(${pascal}) }, tags: ["${pascal}"] },
+
   getById: {
-    params: ParamsWithId,
-    response: {
-      200: GetByIdResponse,
-      404: Type.Object({
-        message: Type.String()
-      })
-    }
+    tags: ["${pascal}"],
+    params: ParamsId,
+    response: { 200: ${pascal}, 404: err() }
   },
-  
-  create: {
-    body: CreateRequest,
-    response: {
-      201: CreateResponse
-    }
+
+  create : {
+    tags: ["${pascal}"],
+    body: CreateReq,
+    response: { 201: ${pascal} }
   },
-  
-  update: {
-    params: ParamsWithId,
-    body: UpdateRequest,
-    response: {
-      200: UpdateResponse,
-      404: Type.Object({
-        message: Type.String()
-      })
-    }
+
+  update : {
+    tags: ["${pascal}"],
+    params: ParamsId,
+    body: UpdateReq,
+    response: { 200: ${pascal}, 404: err() }
   },
-  
-  delete: {
-    params: ParamsWithId,
-    response: {
-      200: DeleteResponse,
-      404: Type.Object({
-        message: Type.String()
-      })
-    }
+
+  del: {
+    tags: ["${pascal}"],
+    params: ParamsId,
+    response: { 200: Type.Object({ success: Type.Boolean() }), 404: err() }
   }
 };
+
+function err() { return Type.Object({ message: Type.String() }); }
 `,
 
-	"model.ts": `// ${moduleName}/model.ts
+		/* ---------- model.ts ---------- */
+		"model.ts": `
+// ${kebab}/model.ts
 import { FastifyInstance } from 'fastify';
 import { Collection, Document, WithId } from 'mongodb';
 
-export interface ${capitalized} {
+export interface ${pascal} {
   id: number;
   name: string;
   createdAt?: string;
   updatedAt?: string;
 }
-
-export type ${capitalized}Create = Omit<${capitalized}, 'id' | 'createdAt' | 'updatedAt'>;
-export type ${capitalized}Update = Partial<${capitalized}Create>;
+export type ${pascal}Create = Omit<${pascal}, 'id'|'createdAt'|'updatedAt'>;
+export type ${pascal}Update = Partial<${pascal}Create>;
 
 export default {
-  findAll: async (fastify: FastifyInstance): Promise<${capitalized}[]> => {
-    if (!fastify.mongo?.db) throw new Error('MongoDB connection not available');
-    
-    const collection: Collection = fastify.mongo.db.collection('${moduleName}');
-    const result = await collection.find({}).toArray();
-    
-    // Transform MongoDB documents to our application type
-    return result.map((doc: WithId<Document>) => ({
-      id: doc.id || 0,
-      name: doc.name || '',
-      createdAt: doc.createdAt,
-      updatedAt: doc.updatedAt
-    })) as ${capitalized}[];
+  async findAll(f: FastifyInstance): Promise<${pascal}[]> {
+    return (await col(f).find().toArray()).map(map);
   },
-  
-  findById: async (fastify: FastifyInstance, id: number): Promise<${capitalized} | null> => {
-    if (!fastify.mongo?.db) throw new Error('MongoDB connection not available');
-    
-    const collection: Collection = fastify.mongo.db.collection('${moduleName}');
-    const doc = await collection.findOne({ id });
-    
-    if (!doc) return null;
-    
-    // Transform MongoDB document to our application type
-    return {
-      id: doc.id || 0,
-      name: doc.name || '',
-      createdAt: doc.createdAt,
-      updatedAt: doc.updatedAt
-    } as ${capitalized};
+
+  async findById(f: FastifyInstance, id: number): Promise<${pascal}|null> {
+    const doc = await col(f).findOne({ id });
+    return doc ? map(doc) : null;
   },
-  
-  create: async (fastify: FastifyInstance, data: ${capitalized}Create): Promise<${capitalized}> => {
-    if (!fastify.mongo?.db) throw new Error('MongoDB connection not available');
-    
-    const collection: Collection = fastify.mongo.db.collection('${moduleName}');
+
+  async create(f: FastifyInstance, data: ${pascal}Create): Promise<${pascal}> {
     const now = new Date().toISOString();
-    const newItem: ${capitalized} = { 
-      ...data, 
-      id: Date.now(), 
-      createdAt: now,
-      updatedAt: now
-    };
-    
-    await collection.insertOne(newItem);
-    return newItem;
+    const item: ${pascal} = { ...data, id: Date.now(), createdAt: now, updatedAt: now };
+    await col(f).insertOne(item);
+    return item;
   },
-  
-  update: async (fastify: FastifyInstance, id: number, data: ${capitalized}Update): Promise<${capitalized} | null> => {
-    if (!fastify.mongo?.db) throw new Error('MongoDB connection not available');
-    
-    const collection: Collection = fastify.mongo.db.collection('${moduleName}');
+
+  async update(f: FastifyInstance, id: number, data: ${pascal}Update): Promise<${pascal}|null> {
     const now = new Date().toISOString();
-    const updateData = {
-      ...data,
-      updatedAt: now
-    };
-    
-    const result = await collection.findOneAndUpdate(
-      { id }, 
-      { $set: updateData },
+    const r = await col(f).findOneAndUpdate(
+      { id },
+      { $set: { ...data, updatedAt: now } },
       { returnDocument: 'after' }
     );
-    
-    if (!result) return null;
-    
-    // Transform MongoDB document to our application type
-    return {
-      id: result.id || 0,
-      name: result.name || '',
-      createdAt: result.createdAt,
-      updatedAt: result.updatedAt
-    } as ${capitalized};
+    return r ? map(r) : null;
   },
-  
-  delete: async (fastify: FastifyInstance, id: number): Promise<boolean> => {
-    if (!fastify.mongo?.db) throw new Error('MongoDB connection not available');
-    
-    const collection: Collection = fastify.mongo.db.collection('${moduleName}');
-    const result = await collection.deleteOne({ id });
-    return result.deletedCount > 0;
+
+  async del(f: FastifyInstance, id: number): Promise<boolean> {
+    const res = await col(f).deleteOne({ id });
+    return res.deletedCount === 1;
   }
 };
+
+function col(f: FastifyInstance): Collection {
+  if (!f.mongo?.db) throw new Error('MongoDB connection not ready');
+  return f.mongo.db.collection('${kebab}');
+}
+function map(doc: WithId<Document>): ${pascal} {
+  return {
+    id: doc.id,
+    name: doc.name,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt
+  };
+}
 `,
-};
-
-function capitalize(str: string) {
-	return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
-if (!fs.existsSync(baseDir)) {
-	fs.mkdirSync(baseDir, { recursive: true });
-	console.log(`📁 Created: ${baseDir}`);
-}
-
-for (const [fileName, content] of Object.entries(files)) {
-	const filePath = path.join(baseDir, fileName);
-	if (!fs.existsSync(filePath)) {
-		fs.writeFileSync(filePath, content);
-		console.log(`✅ Created: ${filePath}`);
-	} else {
-		console.warn(`⚠️ Already exists: ${filePath}`);
-	}
+	};
 }

@@ -1,4 +1,4 @@
-// profile/controller.ts
+// transaction/controller.ts
 import { FastifyReply, FastifyRequest } from 'fastify';
 import service from './service';
 import { ParamsIdType, CreateType, UpdateType } from './schema';
@@ -13,7 +13,7 @@ export default {
     reply: FastifyReply
   ) => {
     const data = await service.getById(req.server, +req.params.id);
-    data ? reply.send(data) : reply.code(404).send({ message: 'Profile not found' });
+    data ? reply.send(data) : reply.code(404).send({ message: 'Transaction not found' });
   },
 
   create: async (
@@ -28,7 +28,7 @@ export default {
     reply: FastifyReply
   ) => {
     const data = await service.update(req.server, +req.params.id, req.body);
-    data ? reply.send(data) : reply.code(404).send({ message: 'Profile not found' });
+    data ? reply.send(data) : reply.code(404).send({ message: 'Transaction not found' });
   },
 
   del: async (
@@ -36,6 +36,6 @@ export default {
     reply: FastifyReply
   ) => {
     const ok = await service.del(req.server, +req.params.id);
-    ok ? reply.send({ success: true }) : reply.code(404).send({ message: 'Profile not found' });
+    ok ? reply.send({ success: true }) : reply.code(404).send({ message: 'Transaction not found' });
   }
 };

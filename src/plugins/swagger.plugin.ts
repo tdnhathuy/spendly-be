@@ -1,9 +1,9 @@
 import fastifySwagger from "@fastify/swagger";
 import fastifySwaggerUi from "@fastify/swagger-ui";
-import { FastifyPluginAsync } from "fastify";
+import { FastifyInstance } from "fastify";
 import { config } from "../config/config";
 
-const swaggerPlugin: FastifyPluginAsync = async (fastify) => {
+export const pluginSwagger = async (fastify: FastifyInstance) => {
 	await fastify.register(fastifySwagger, {
 		openapi: {
 			info: {
@@ -22,6 +22,6 @@ const swaggerPlugin: FastifyPluginAsync = async (fastify) => {
 		transformSpecification: (swaggerObject) => swaggerObject,
 		transformSpecificationClone: true,
 	});
-};
 
-export default swaggerPlugin;
+	return fastify;
+};

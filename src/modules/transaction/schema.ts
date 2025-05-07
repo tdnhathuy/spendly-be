@@ -1,7 +1,7 @@
-// profile/schema.ts
+// transaction/schema.ts
 import { Type, Static } from '@sinclair/typebox';
 
-const Profile = Type.Object({
+const Transaction = Type.Object({
   id:        Type.Number(),
   name:      Type.String(),
   createdAt: Type.Optional(Type.String({ format: 'date-time' })),
@@ -9,7 +9,7 @@ const Profile = Type.Object({
 });
 
 export const ParamsId  = Type.Object({ id: Type.String() });
-export const CreateReq = Type.Omit(Profile, ['id', 'createdAt', 'updatedAt']);
+export const CreateReq = Type.Omit(Transaction, ['id', 'createdAt', 'updatedAt']);
 export const UpdateReq = Type.Partial(CreateReq);
 
 export type ParamsIdType = Static<typeof ParamsId>;
@@ -17,29 +17,29 @@ export type CreateType   = Static<typeof CreateReq>;
 export type UpdateType   = Static<typeof UpdateReq>;
 
 export default {
-  getAll : { response: { 200: Type.Array(Profile) }, tags: ["Profile"] },
+  getAll : { response: { 200: Type.Array(Transaction) }, tags: ["Transaction"] },
 
   getById: {
-    tags: ["Profile"],
+    tags: ["Transaction"],
     params: ParamsId,
-    response: { 200: Profile, 404: err() }
+    response: { 200: Transaction, 404: err() }
   },
 
   create : {
-    tags: ["Profile"],
+    tags: ["Transaction"],
     body: CreateReq,
-    response: { 201: Profile }
+    response: { 201: Transaction }
   },
 
   update : {
-    tags: ["Profile"],
+    tags: ["Transaction"],
     params: ParamsId,
     body: UpdateReq,
-    response: { 200: Profile, 404: err() }
+    response: { 200: Transaction, 404: err() }
   },
 
   del: {
-    tags: ["Profile"],
+    tags: ["Transaction"],
     params: ParamsId,
     response: { 200: Type.Object({ success: Type.Boolean() }), 404: err() }
   }
