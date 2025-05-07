@@ -6,7 +6,7 @@ export const config = {
   },
   mongodb: {
     url: "mongodb+srv://tdnhathuy:gR5IFS2o2fJdwOUG@dummy-cluster.rubf9uh.mongodb.net/?retryWrites=true&w=majority&appName=dummy-cluster",
-    dbName: "sample_mflix"
+    dbName: "spendly"
   },
   swagger: {
     routePrefix: "/docs"

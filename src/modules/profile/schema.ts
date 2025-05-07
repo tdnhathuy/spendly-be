@@ -1,8 +1,8 @@
-// transaction/schema.ts
+// profile/schema.ts
 import { Type } from '@sinclair/typebox';
 import { Static } from '@sinclair/typebox';
 
-const TransactionType = Type.Object({
+const ProfileType = Type.Object({
   id: Type.Number(),
   name: Type.String(),
   createdAt: Type.Optional(Type.String({ format: 'date-time' })),
@@ -13,21 +13,21 @@ export const ParamsWithId = Type.Object({
   id: Type.String()
 });
 
-export const GetAllResponse = Type.Array(TransactionType);
+export const GetAllResponse = Type.Array(ProfileType);
 
-export const GetByIdResponse = TransactionType;
+export const GetByIdResponse = ProfileType;
 
 export const CreateRequest = Type.Object({
   name: Type.String()
 });
 
-export const CreateResponse = TransactionType;
+export const CreateResponse = ProfileType;
 
 export const UpdateRequest = Type.Object({
   name: Type.String()
 });
 
-export const UpdateResponse = TransactionType;
+export const UpdateResponse = ProfileType;
 
 export const DeleteResponse = Type.Object({
   success: Type.Boolean()

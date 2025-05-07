@@ -1,25 +1,21 @@
+import autoload from "@fastify/autoload";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import Fastify from "fastify";
-import autoload from "@fastify/autoload";
 import path from "path";
+import { makeDir } from "./helper/func.helper";
 
-// Khởi tạo Fastify app
 export async function buildApp() {
 	const fastify = Fastify({
 		logger: false,
-		ajv: {
-			customOptions: {
-				strict: false, // Tắt strict mode để chấp nhận keywords như example
-				allErrors: true,
-			},
-		},
 	}).withTypeProvider<TypeBoxTypeProvider>();
 
-	fastify.register(autoload, {
-		dir: path.join(__dirname, "plugins"),
-	});
-	fastify.register(autoload, {
-		dir: path.join(__dirname, "modules"),
+	fastify.register(autoload, { dir: makeDir("plugins") });
+	fastify.register(autoload, { dir: makeDir("modules") });
+
+	fastify.get("/abc", (req, res) => {
+		return res.send({
+			message: "Hello World",
+		});
 	});
 
 	return fastify;

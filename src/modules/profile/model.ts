@@ -1,22 +1,22 @@
-// transaction/model.ts
+// profile/model.ts
 import { FastifyInstance } from 'fastify';
 import { Collection, Document, WithId } from 'mongodb';
 
-export interface Transaction {
+export interface Profile {
   id: number;
   name: string;
   createdAt?: string;
   updatedAt?: string;
 }
 
-export type TransactionCreate = Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>;
-export type TransactionUpdate = Partial<TransactionCreate>;
+export type ProfileCreate = Omit<Profile, 'id' | 'createdAt' | 'updatedAt'>;
+export type ProfileUpdate = Partial<ProfileCreate>;
 
 export default {
-  findAll: async (fastify: FastifyInstance): Promise<Transaction[]> => {
+  findAll: async (fastify: FastifyInstance): Promise<Profile[]> => {
     if (!fastify.mongo?.db) throw new Error('MongoDB connection not available');
     
-    const collection: Collection = fastify.mongo.db.collection('transaction');
+    const collection: Collection = fastify.mongo.db.collection('profile');
     const result = await collection.find({}).toArray();
     
     // Transform MongoDB documents to our application type
@@ -25,13 +25,13 @@ export default {
       name: doc.name || '',
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt
-    })) as Transaction[];
+    })) as Profile[];
   },
   
-  findById: async (fastify: FastifyInstance, id: number): Promise<Transaction | null> => {
+  findById: async (fastify: FastifyInstance, id: number): Promise<Profile | null> => {
     if (!fastify.mongo?.db) throw new Error('MongoDB connection not available');
     
-    const collection: Collection = fastify.mongo.db.collection('transaction');
+    const collection: Collection = fastify.mongo.db.collection('profile');
     const doc = await collection.findOne({ id });
     
     if (!doc) return null;
@@ -42,15 +42,15 @@ export default {
       name: doc.name || '',
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt
-    } as Transaction;
+    } as Profile;
   },
   
-  create: async (fastify: FastifyInstance, data: TransactionCreate): Promise<Transaction> => {
+  create: async (fastify: FastifyInstance, data: ProfileCreate): Promise<Profile> => {
     if (!fastify.mongo?.db) throw new Error('MongoDB connection not available');
     
-    const collection: Collection = fastify.mongo.db.collection('transaction');
+    const collection: Collection = fastify.mongo.db.collection('profile');
     const now = new Date().toISOString();
-    const newItem: Transaction = { 
+    const newItem: Profile = { 
       ...data, 
       id: Date.now(), 
       createdAt: now,
@@ -61,10 +61,10 @@ export default {
     return newItem;
   },
   
-  update: async (fastify: FastifyInstance, id: number, data: TransactionUpdate): Promise<Transaction | null> => {
+  update: async (fastify: FastifyInstance, id: number, data: ProfileUpdate): Promise<Profile | null> => {
     if (!fastify.mongo?.db) throw new Error('MongoDB connection not available');
     
-    const collection: Collection = fastify.mongo.db.collection('transaction');
+    const collection: Collection = fastify.mongo.db.collection('profile');
     const now = new Date().toISOString();
     const updateData = {
       ...data,
@@ -85,13 +85,13 @@ export default {
       name: result.name || '',
       createdAt: result.createdAt,
       updatedAt: result.updatedAt
-    } as Transaction;
+    } as Profile;
   },
   
   delete: async (fastify: FastifyInstance, id: number): Promise<boolean> => {
     if (!fastify.mongo?.db) throw new Error('MongoDB connection not available');
     
-    const collection: Collection = fastify.mongo.db.collection('transaction');
+    const collection: Collection = fastify.mongo.db.collection('profile');
     const result = await collection.deleteOne({ id });
     return result.deletedCount > 0;
   }
