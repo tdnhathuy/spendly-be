@@ -9,6 +9,7 @@ import {
 } from "../../helper/db.helper";
 import { LoginResponse, User } from "./auth.schema";
 import { ObjectId } from "mongodb";
+import { config } from "../../config/config";
 
 const COLLECTION_NAME = "users";
 
@@ -77,11 +78,23 @@ export const ServiceAuth = {
         throw new Error('Lỗi cấu hình: JWT không được khởi tạo');
       }
       
-      const token = jwtInstance.sign({
+      // Đảm bảo sử dụng secret đúng như trong file cấu hình
+      // Tạo payload đơn giản để tránh lỗi
+      const payload = {
         id: user.id,
         email: user.email,
+        iat: Math.floor(Date.now() / 1000), // Thời gian tạo token
+        sub: user.id, // Đối tượng token (subject)
+      };
+      
+      console.log('Tạo token với payload:', payload);
+      
+      // Cấu hình mặc định để đảm bảo nhất quán
+      const token = jwtInstance.sign(payload, {
+        expiresIn: '7d',
       });
-      console.log('Đã tạo token JWT thành công');
+      
+      console.log('Đã tạo token JWT thành công, secret key:', config.auth.jwtSecret.substring(0, 5) + '...');
       
       return {
         token,
@@ -111,4 +124,4 @@ export const ServiceAuth = {
     const user = await collection.findOne({ email });
     return transformDocument(user);
   },
-}; 
+};

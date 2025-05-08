@@ -18,7 +18,7 @@ const pascal = kebab
   .join("");
 
 /* --------------- Tạo thư mục module ----------------- */
-const baseDir = path.join(__dirname, '..', 'src', 'modules', kebab);
+const baseDir = path.join(__dirname, "..", "src", "modules", kebab);
 if (fs.existsSync(baseDir)) {
   console.error(
     `⚠️  Module "${kebab}" đã tồn tại. Hãy xoá hoặc đổi tên rồi chạy lại.`
@@ -38,7 +38,7 @@ for (const [file, content] of Object.entries(templates(kebab, pascal))) {
 /*            Hàm sinh template cho từng file           */
 /* ==================================================== */
 function templates(kebab: string, pascal: string): Record<string, string> {
-  const TAG = `"${pascal}"`; // tag cho swagger hoặc plugin docs
+  const TAG = `${pascal}`; // tag cho swagger hoặc plugin docs
   return {
     /* ---------- routes.ts ---------- */
     [`${kebab}.route.ts`]: `
@@ -50,11 +50,26 @@ import controller from "./${kebab}.controller";
 export default async function ${kebab}Routes(app: FastifyInstance) {
   const server = app.withTypeProvider<TypeBoxTypeProvider>();
 
-  server.get("/", {}, controller.getAll);
-  server.get("/:id", {}, controller.getById);
-  server.post("/", {}, controller.create);
-  server.put("/:id", {}, controller.update);
-  server.delete("/:id", {}, controller.delete);
+  server.get("/", {
+      preHandler: app.authenticate,
+      schema: {tags: ["${TAG}"]},
+    }, controller.getAll);
+  server.get("/:id", {
+      preHandler: app.authenticate,
+      schema: {tags: ["${TAG}"]},
+    }, controller.getById);
+  server.post("/", {
+      preHandler: app.authenticate,
+      schema: {tags: ["${TAG}"]},
+    }, controller.create);
+  server.put("/:id", {
+      preHandler: app.authenticate,
+      schema: {tags: ["${TAG}"]},
+    }, controller.update);
+  server.delete("/:id", {
+      preHandler: app.authenticate,
+      schema: {tags: ["${TAG}"]},
+    }, controller.delete);
 }
 `,
 

@@ -6,8 +6,14 @@ import { pluginCookie } from "./cookie.plugin";
 // Không cần plugin session và oauth2 nữa
 
 export const setupPlugins = async (fastify: FastifyInstance) => {
-	await pluginMongodb(fastify);
-	await pluginCookie(fastify);
-	await pluginJwt(fastify);
-	await pluginSwagger(fastify);
+  try {
+    console.log("Đang thiết lập plugins...");
+    await pluginMongodb(fastify);
+    await pluginCookie(fastify);
+    await pluginJwt(fastify);
+    await pluginSwagger(fastify);
+    console.log("Thiết lập plugins hoàn tất");
+  } catch (error) {
+    console.error("Lỗi khi thiết lập plugins:", error);
+  }
 };

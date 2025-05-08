@@ -148,6 +148,44 @@ export const successPage = `
       display: block;
       border: 3px solid #4caf50;
     }
+    .usage-info {
+      margin-top: 30px;
+      padding: 20px;
+      background-color: #e8f5e9;
+      border-radius: 4px;
+      border-left: 4px solid #2e7d32;
+    }
+    .usage-info h3 {
+      margin-top: 0;
+      color: #2e7d32;
+    }
+    .code-example {
+      background-color: #333;
+      color: #fff;
+      padding: 15px;
+      border-radius: 4px;
+      margin-top: 10px;
+      overflow-x: auto;
+    }
+    .copy-button {
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    .copy-button:hover {
+      background-color: #388e3c;
+    }
+    .routes-list {
+      margin-top: 15px;
+    }
+    .routes-list li {
+      margin-bottom: 8px;
+    }
   </style>
 </head>
 <body>
@@ -164,6 +202,32 @@ export const successPage = `
       <div class="token">
         <div class="label">Token JWT:</div>
         <pre id="token"></pre>
+        <button class="copy-button" onclick="copyToken()">Sao chép Token</button>
+      </div>
+      
+      <div class="usage-info">
+        <h3>Cách sử dụng token</h3>
+        <p>Sử dụng token này trong header Authorization cho các request API:</p>
+        <div class="code-example">
+          Authorization: Bearer <span id="token-placeholder">your_token_here</span>
+        </div>
+        
+        <p>Các route được bảo vệ bằng JWT:</p>
+        <ul class="routes-list">
+          <li><strong>/profile</strong> - Xem thông tin cá nhân</li>
+          <li><strong>/transaction</strong> - Xem danh sách giao dịch</li>
+        </ul>
+        
+        <p>Ví dụ sử dụng với fetch API:</p>
+        <div class="code-example">
+fetch('/profile', {
+  headers: {
+    'Authorization': 'Bearer <span id="token-fetch-example">your_token_here</span>'
+  }
+})
+.then(response => response.json())
+.then(data => console.log(data))
+        </div>
       </div>
     </div>
   </div>
@@ -177,7 +241,23 @@ export const successPage = `
     if (userData) {
       document.getElementById('avatar').src = userData.user.picture || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(userData.user.name);
       document.getElementById('user-info').textContent = JSON.stringify(userData.user, null, 2);
-      document.getElementById('token').textContent = userData.token;
+      document.getElementById('token').textContent = 'Bearer ' + userData.token;
+      
+      // Cập nhật các ví dụ token
+      document.getElementById('token-placeholder').textContent = userData.token;
+      document.getElementById('token-fetch-example').textContent = userData.token;
+    }
+    
+    // Hàm sao chép token
+    function copyToken() {
+      const tokenText = document.getElementById('token').textContent;
+      navigator.clipboard.writeText(tokenText)
+        .then(() => {
+          alert('Đã sao chép token vào clipboard!');
+        })
+        .catch(err => {
+          console.error('Lỗi khi sao chép:', err);
+        });
     }
   </script>
 </body>

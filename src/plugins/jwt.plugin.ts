@@ -4,6 +4,11 @@ import { config } from "../config/config";
 
 export const pluginJwt = async (fastify: FastifyInstance) => {
   try {
+    if (!config.auth.jwtSecret) {
+      console.error("Lỗi: Thiếu JWT secret key trong cấu hình");
+      throw new Error("JWT_SECRET không được cấu hình");
+    }
+
     await fastify.register(fastifyJwt, {
       secret: config.auth.jwtSecret,
       sign: {
@@ -23,6 +28,6 @@ export const pluginJwt = async (fastify: FastifyInstance) => {
     return fastify;
   } catch (error) {
     console.error("Lỗi khi thiết lập JWT plugin:", error);
-    return fastify;
+    throw error;
   }
 }; 

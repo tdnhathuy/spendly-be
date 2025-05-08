@@ -17,9 +17,55 @@ const server = Fastify({
   logger: {
     level: 'info',
     transport: {
-      target: 'pino-pretty'
+      target: 'pino-pretty',
+      options: {
+        translateTime: 'HH:MM:ss Z',
+        ignore: 'pid,hostname',
+        colorize: true
+      }
+    },
+    serializers: {
+      req: (request) => {
+        return {
+          method: request.method,
+          url: request.url,
+          params: request.params,
+          query: request.query,
+          body: request.body,
+          headers: request.headers,
+          id: request.id
+        };
+      },
+      res: (reply) => {
+        return {
+          statusCode: reply.statusCode
+        };
+      }
     }
   }
+});
+
+server.addHook('onRequest', (request, reply, done) => {
+  reply.startTime = Date.now();
+  done();
+});
+
+server.addHook('onResponse', (request, reply, done) => {
+  const responseTime = Date.now() - reply.startTime;
+  request.log.info({ 
+    responseTime: `${responseTime}ms`,
+    method: request.method,
+    url: request.url,
+    statusCode: reply.statusCode
+  }, 'request completed');
+  done();
+});
+
+server.addHook('preHandler', (request, reply, done) => {
+  if (request.body) {
+    request.log.info({ body: request.body }, 'request body');
+  }
+  done();
 });
 
 console.log("Đăng ký các routes và plugins...");

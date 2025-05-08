@@ -17,10 +17,12 @@ export const pluginSwagger = async (fastify: FastifyInstance) => {
 	await fastify.register(fastifySwaggerUi, {
 		routePrefix: config.swagger.routePrefix,
 		uiConfig: {
-			docExpansion: "none",
+			docExpansion: "list",
+
 		},
 		transformSpecification: (swaggerObject) => swaggerObject,
 		transformSpecificationClone: true,
+		
 	});
 
 	return fastify;
