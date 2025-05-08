@@ -2,6 +2,27 @@ import { FastifyInstance } from "fastify";
 import { Collection, Document, ObjectId } from "mongodb";
 
 /**
+ * Chuyển đổi _id thành id trong document MongoDB
+ */
+export const transformDocument = <T extends Document>(doc: T | null): (Omit<T, '_id'> & { id: string }) | null => {
+  if (!doc) return null;
+  
+  const { _id, ...rest } = doc;
+  
+  return {
+    ...rest,
+    id: _id.toString(),
+  } as Omit<T, '_id'> & { id: string };
+};
+
+/**
+ * Chuyển đổi _id thành id trong mảng document MongoDB
+ */
+export const transformDocuments = <T extends Document>(docs: T[]): (Omit<T, '_id'> & { id: string })[] => {
+  return docs.map(doc => transformDocument(doc)!).filter(Boolean);
+};
+
+/**
  * Lấy MongoDB database từ Fastify instance
  */
 export const getMongoDB = (server: FastifyInstance) => {
@@ -36,10 +57,12 @@ export const insertDocument = async (
   };
   
   const result = await collection.insertOne(documentToInsert);
-  return {
-    _id: result.insertedId.toString(),
+  const insertedDoc = {
+    _id: result.insertedId,
     ...documentToInsert
   };
+  
+  return transformDocument(insertedDoc);
 };
 
 /**
@@ -67,7 +90,7 @@ export const updateDocument = async (
     { returnDocument: "after" }
   );
   
-  return result;
+  return transformDocument(result);
 };
 
 /**
@@ -79,7 +102,8 @@ export const findDocumentById = async (
   id: string
 ) => {
   const collection = getCollection(server, collectionName);
-  return await collection.findOne({ _id: new ObjectId(id) });
+  const result = await collection.findOne({ _id: new ObjectId(id) });
+  return transformDocument(result);
 };
 
 /**
@@ -103,5 +127,6 @@ export const findAllDocuments = async (
   collectionName: string
 ) => {
   const collection = getCollection(server, collectionName);
-  return await collection.find().toArray();
+  const results = await collection.find().toArray();
+  return transformDocuments(results);
 }; 
