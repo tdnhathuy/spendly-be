@@ -1,23 +1,26 @@
+import autoload from "@fastify/autoload";
 import {
   FastifyInstance,
   FastifyReply,
   FastifyRequest,
   FastifyServerOptions,
 } from "fastify";
-import routes from "./routes";
+import path from "path";
+import { setupPlugins } from "./plugins";
 
-async function app(
-  instance: FastifyInstance,
-  opts: FastifyServerOptions,
-  done
-) {
+async function app(instance: FastifyInstance, opts: FastifyServerOptions) {
+  await setupPlugins(instance);
+
   instance.get("/", async (req: FastifyRequest, res: FastifyReply) => {
     res.status(200).send({
-      hello: "World",
+      message: "hello World",
     });
   });
-  instance.register(routes, { prefix: "/api/v1" });
-  done();
+
+  instance.register(autoload, {
+    dir: path.join(__dirname, "modules"),
+    options: { prefix: "/api" },
+  });
 }
 
 export default app;
