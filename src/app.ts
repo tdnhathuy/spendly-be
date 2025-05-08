@@ -13,14 +13,16 @@ async function app(instance: FastifyInstance, opts: FastifyServerOptions) {
 
   instance.get("/", async (req: FastifyRequest, res: FastifyReply) => {
     res.status(200).send({
-      message: "hello World",
+      message: "Ráng học API nhé Thuỷ Tiêng",
     });
   });
 
-  instance.register(autoload, {
+  await instance.register(autoload, {
     dir: path.join(__dirname, "modules"),
     options: { prefix: "/api" },
   });
+
+  console.log(instance.printRoutes());
 }
 
 export default app;
