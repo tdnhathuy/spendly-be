@@ -46,5 +46,15 @@ export default {
     data
       ? reply.send(data)
       : reply.code(404).send({ message: "Profile not found" });
+    },
+
+  patch: async (
+    req: FastifyRequest<{ Params: { id: string }; Body: ProfileUpdate }>,
+    reply: FastifyReply
+  ) => {
+    const data = await ServiceProfile.patch(req.server, req.params.id, req.body);
+    data
+      ? reply.send(data)
+      : reply.code(404).send({ message: "Profile not found" });
   },
 };
