@@ -1,29 +1,23 @@
 // profile/controller.ts
 import { FastifyReply, FastifyRequest } from "fastify";
-import { ServiceProfile } from "./profile.service";
-import { ProfileCreate, ProfileUpdate } from "./profile.schema";
+import { getCol } from "../../helper/db.helper";
 
-export default {
-  getAll: async (req: FastifyRequest, reply: FastifyReply) => {
-    return ServiceProfile.getAll(req.server);
-  },
-
-  getById: async (req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    const data = await ServiceProfile.getById(req.server, req.params.id);
-    data ? reply.send(data) : reply.code(404).send({ message: "Profile not found" });
-  },
-
-  create: async (req: FastifyRequest<{ Body: ProfileCreate }>, reply: FastifyReply) => {
-    reply.code(201).send(await ServiceProfile.create(req.server, req.body));
-  },
-
-  update: async (req: FastifyRequest<{ Params: { id: string }; Body: ProfileUpdate }>, reply: FastifyReply) => {
-    const data = await ServiceProfile.update(req.server, req.params.id, req.body);
-    data ? reply.send(data) : reply.code(404).send({ message: "Profile not found" });
-  },
-
-  delete: async (req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    const data = await ServiceProfile.delete(req.server, req.params.id);
-    data ? reply.send(data) : reply.code(404).send({ message: "Profile not found" });
+export const ControllerProfile = {
+  setupProfile: async (req: FastifyRequest, reply: FastifyReply) => {
+    const email = req.user.email;
+    const collection = await getCol(req);
+    const profile = await collection.findOne({ email });
+    if (!profile) {
+      collection.insertOne({
+        ...req.user,
+        transaction: [],
+        category: [],
+        wallet: [],
+      });
+    }
+    return reply.status(200).send({
+      success: true,
+      data: profile,
+    });
   },
 };

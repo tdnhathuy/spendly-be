@@ -13,70 +13,76 @@ interface GooglePayload {
   exp: number;
 }
 
-declare module 'fastify' {
+declare module "fastify" {
   interface FastifyRequest {
     user?: {
       id: string;
       email: string;
       name: string;
       picture: string;
-    }
+    };
     jwtVerify(): Promise<any>;
   }
-  
+
   interface FastifyInstance {
-    authenticate: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
+    authenticate: (
+      request: FastifyRequest,
+      reply: FastifyReply
+    ) => Promise<void>;
   }
 }
 
 export const pluginJwt = async (fastify: FastifyInstance) => {
-  fastify.register(require('@fastify/jwt'), {
-    secret: process.env.JWT_SECRET || 'supersecret'
+  fastify.register(require("@fastify/jwt"), {
+    secret: process.env.JWT_SECRET || "supersecret",
   });
 
   const googleClient = new OAuth2Client();
 
-  fastify.decorate("authenticate", async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const authHeader = request.headers.authorization;
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return reply.code(401).send({ error: 'Không có token xác thực' });
-      }
-
-      const token = authHeader.substring(7);
-      if (token.includes('.')) {
-        try {
-          const ticket = await googleClient.verifyIdToken({
-            idToken: token,
-            audience: process.env.GOOGLE_CLIENT_ID
-          });
-          
-          const payload = ticket.getPayload() as GooglePayload;
-          if (!payload) {
-            return reply.code(401).send({ error: 'Token không hợp lệ' });
-          }
-          
-          request.user = {
-            id: payload.sub,
-            email: payload.email,
-            name: payload.name,
-            picture: payload.picture
-          };
-          
-          return;
-        } catch (googleError) {
-          try {
-            await request.jwtVerify();
-            return;
-          } catch (jwtError) {
-            return reply.code(401).send({ error: 'Token không hợp lệ' });
-          }
+  fastify.decorate(
+    "authenticate",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      try {
+        const authHeader = request.headers.authorization;
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+          return reply.code(401).send({ error: "Không có token xác thực" });
         }
-      } else {
-        return reply.code(401).send({ error: 'Token không đúng định dạng' });
+
+        const token = authHeader.substring(7);
+        if (token.includes(".")) {
+          try {
+            const ticket = await googleClient.verifyIdToken({
+              idToken: token,
+              audience: process.env.GOOGLE_CLIENT_ID,
+            });
+
+            const payload = ticket.getPayload() as GooglePayload;
+            if (!payload) {
+              return reply.code(401).send({ error: "Token không hợp lệ" });
+            }
+
+            request.user = {
+              id: payload.sub,
+              email: payload.email,
+              name: payload.name,
+              picture: payload.picture,
+            };
+
+            return;
+          } catch (googleError) {
+            try {
+              await request.jwtVerify();
+              return;
+            } catch (jwtError) {
+              return reply.code(401).send({ error: "Token không hợp lệ" });
+            }
+          }
+        } else {
+          return reply.code(401).send({ error: "Token không đúng định dạng" });
+        }
+      } catch (err) {
+        return reply.code(500).send({ error: "Lỗi xác thực" });
       }
-    } catch (err) {
-      return reply.code(500).send({ error: 'Lỗi xác thực' });
     }
-  });
+  );
 };

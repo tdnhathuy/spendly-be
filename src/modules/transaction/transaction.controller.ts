@@ -1,29 +1,36 @@
-// transaction/controller.ts
 import { FastifyReply, FastifyRequest } from "fastify";
-import { ServiceTransaction } from "./transaction.service";
-import { TransactionCreate, TransactionUpdate } from "./transaction.schema";
+import { getCol } from "../../helper/db.helper";
+export const ControllerTransaction = {
+  getAll: async (req: FastifyRequest, rep: FastifyReply) => {
+    try {
+      const { email } = req.user;
+      const collection = await getCol(req);
+      const { transaction = [] } = await collection.findOne({ email });
 
-export default {
-  getAll: async (req: FastifyRequest, reply: FastifyReply) => {
-    return ServiceTransaction.getAll(req.server);
+      return rep.status(200).send({
+        success: true,
+        data: transaction,
+      });
+    } catch (error) {
+      return rep.status(500).send({
+        success: false,
+        message: "Lỗi khi lấy danh sách giao dịch",
+      });
+    }
   },
 
-  getById: async (req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    const data = await ServiceTransaction.getById(req.server, req.params.id);
-    data ? reply.send(data) : reply.code(404).send({ message: "Transaction not found" });
-  },
+  create: async (req: FastifyRequest, rep: FastifyReply) => {
+    try {
+      const collection = await getCol(req);
 
-  create: async (req: FastifyRequest<{ Body: TransactionCreate }>, reply: FastifyReply) => {
-    reply.code(201).send(await ServiceTransaction.create(req.server, req.body));
-  },
-
-  update: async (req: FastifyRequest<{ Params: { id: string }; Body: TransactionUpdate }>, reply: FastifyReply) => {
-    const data = await ServiceTransaction.update(req.server, req.params.id, req.body);
-    data ? reply.send(data) : reply.code(404).send({ message: "Transaction not found" });
-  },
-
-  delete: async (req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    const data = await ServiceTransaction.delete(req.server, req.params.id);
-    data ? reply.send(data) : reply.code(404).send({ message: "Transaction not found" });
+      const profile = await collection.findOneAndUpdate(
+        { email: req.user.email },
+        { $push: { transaction: req.body } }
+      );
+      console.log("profile", profile);
+      return rep.send({ success: true });
+    } catch (error) {
+      console.log("error", error);
+    }
   },
 };
