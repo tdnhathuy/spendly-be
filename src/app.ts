@@ -2,28 +2,27 @@ import autoload from "@fastify/autoload";
 import { FastifyInstance, FastifyServerOptions } from "fastify";
 import path from "path";
 import { setupPlugins } from "./plugins";
-import authRoutes from "./routes/auth.route";
-import commonRoutes from "./routes/common.route";
 
 async function app(instance: FastifyInstance, opts: FastifyServerOptions) {
-  console.log("Bắt đầu thiết lập app...");
-
   await setupPlugins(instance);
-  instance.register(authRoutes);
-  instance.register(commonRoutes);
 
   await instance.register(autoload, {
-    dir: path.join(__dirname, "modules"),
-    options: { prefix: "/api" },
+    dir: path.join(__dirname, "routes"),
   });
 
-  try {
-    console.log(instance.printRoutes());
-  } catch (error) {
-    console.error("Không thể in danh sách routes:", error);
-  }
+  await instance.register(
+    async (apiInstance) => {
+      apiInstance.addHook("onRequest", instance.authenticate);
 
-  console.log("Thiết lập app hoàn tất");
+      await apiInstance.register(autoload, {
+        dir: path.join(__dirname, "modules"),
+      });
+    },
+
+    { prefix: "/api" }
+  );
+
+  console.log(instance.printRoutes());
 }
 
 export default app;

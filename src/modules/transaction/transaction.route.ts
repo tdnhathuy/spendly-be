@@ -5,25 +5,11 @@ import controller from "./transaction.controller";
 
 export default async function transactionRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<TypeBoxTypeProvider>();
+  const tags = ["Transaction"];
 
-  server.get("/", {
-      preHandler: app.authenticate,
-      schema: {tags: ["Transaction"]},
-    }, controller.getAll);
-  server.get("/:id", {
-      preHandler: app.authenticate,
-      schema: {tags: ["Transaction"]},
-    }, controller.getById);
-  server.post("/", {
-      preHandler: app.authenticate,
-      schema: {tags: ["Transaction"]},
-    }, controller.create);
-  server.put("/:id", {
-      preHandler: app.authenticate,
-      schema: {tags: ["Transaction"]},
-    }, controller.update);
-  server.delete("/:id", {
-      preHandler: app.authenticate,
-      schema: {tags: ["Transaction"]},
-    }, controller.delete);
+  server.get("/", { schema: { tags } }, controller.getAll);
+  server.get("/:id", { schema: { tags } }, controller.getById);
+  server.post("/", { schema: { tags } }, controller.create);
+  server.put("/:id", { schema: { tags } }, controller.update);
+  server.delete("/:id", { schema: { tags } }, controller.delete);
 }

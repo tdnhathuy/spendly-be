@@ -42,40 +42,24 @@ function templates(kebab: string, pascal: string): Record<string, string> {
   return {
     /* ---------- routes.ts ---------- */
     [`${kebab}.route.ts`]: `
-// ${kebab}/routes.ts
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { FastifyInstance } from "fastify";
 import controller from "./${kebab}.controller";
 
 export default async function ${kebab}Routes(app: FastifyInstance) {
   const server = app.withTypeProvider<TypeBoxTypeProvider>();
+  const tags = ["${TAG}"];
 
-  server.get("/", {
-      preHandler: app.authenticate,
-      schema: {tags: ["${TAG}"]},
-    }, controller.getAll);
-  server.get("/:id", {
-      preHandler: app.authenticate,
-      schema: {tags: ["${TAG}"]},
-    }, controller.getById);
-  server.post("/", {
-      preHandler: app.authenticate,
-      schema: {tags: ["${TAG}"]},
-    }, controller.create);
-  server.put("/:id", {
-      preHandler: app.authenticate,
-      schema: {tags: ["${TAG}"]},
-    }, controller.update);
-  server.delete("/:id", {
-      preHandler: app.authenticate,
-      schema: {tags: ["${TAG}"]},
-    }, controller.delete);
+  server.get("/", { schema: { tags } }, controller.getAll);
+  server.get("/:id", { schema: { tags } }, controller.getById);
+  server.post("/", { schema: { tags } }, controller.create);
+  server.put("/:id", { schema: { tags } }, controller.update);
+  server.delete("/:id", { schema: { tags } }, controller.delete);
 }
 `,
 
     /* ---------- controller.ts ---------- */
     [`${kebab}.controller.ts`]: `
-// ${kebab}/controller.ts
 import { FastifyReply, FastifyRequest } from "fastify";
 import { Service${pascal} } from "./${kebab}.service";
 import { ${pascal}Create, ${pascal}Update } from "./${kebab}.schema";
@@ -108,7 +92,6 @@ export default {
 
     /* ---------- service.ts ---------- */
     [`${kebab}.service.ts`]: `
-// ${kebab}/service.ts
 import { FastifyInstance } from "fastify";
 import {
   findAllDocuments,
@@ -147,7 +130,6 @@ export const Service${pascal} = {
 
     /* ---------- schema.ts ---------- */
     [`${kebab}.schema.ts`]: `
-// ${kebab}/schema.ts
 import { Static, Type } from "@sinclair/typebox";
 
 export const Schema${pascal} = Type.Object({
