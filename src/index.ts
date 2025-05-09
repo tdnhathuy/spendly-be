@@ -14,35 +14,35 @@ const PORT = config.server.port || 3000;
 const HOST = config.server.host || "0.0.0.0";
 
 const server = Fastify({
-  logger: {
-    level: 'info',
-    transport: {
-      target: 'pino-pretty',
-      options: {
-        translateTime: 'HH:MM:ss Z',
-        ignore: 'pid,hostname',
-        colorize: true
-      }
-    },
-    serializers: {
-      req: (request) => {
-        return {
-          method: request.method,
-          url: request.url,
-          params: request.params,
-          query: request.query,
-          body: request.body,
-          headers: request.headers,
-          id: request.id
-        };
-      },
-      res: (reply) => {
-        return {
-          statusCode: reply.statusCode
-        };
-      }
-    }
-  }
+  // logger: {
+  //   level: 'info',
+  //   transport: {
+  //     target: 'pino-pretty',
+  //     options: {
+  //       translateTime: 'HH:MM:ss Z',
+  //       ignore: 'pid,hostname',
+  //       colorize: true
+  //     }
+  //   },
+  //   serializers: {
+  //     req: (request) => {
+  //       return {
+  //         method: request.method,
+  //         url: request.url,
+  //         params: request.params,
+  //         query: request.query,
+  //         body: request.body,
+  //         headers: request.headers,
+  //         id: request.id
+  //       };
+  //     },
+  //     res: (reply) => {
+  //       return {
+  //         statusCode: reply.statusCode
+  //       };
+  //     }
+  //   }
+  // }
 });
 
 server.addHook('onRequest', (request, reply, done) => {

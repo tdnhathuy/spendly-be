@@ -1,3 +1,7 @@
+import { config as configDotenv } from "dotenv";
+
+configDotenv();
+
 const url =
   process.env.MONGODB_URL ||
   "mongodb+srv://tdnhathuy:gR5IFS2o2fJdwOUG@dummy-cluster.rubf9uh.mongodb.net/?retryWrites=true&w=majority&appName=dummy-cluster";
@@ -7,7 +11,7 @@ const dbName =
     ? "spendly"
     : "spendly-dev";
 
-const JWT_SECRET = "supersecret_jwt_key_for_development_12345";
+const JWT_SECRET = "Dd8yhHC9d/eyIF0I6+7Vnmn1stzgtrvY+NV2TNTTwjc=";
 
 export const config = {
   server: {
