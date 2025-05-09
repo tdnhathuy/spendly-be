@@ -6,7 +6,9 @@ export default async function (fastify: FastifyInstance) {
 
   const tags = ["Common"];
 
-  server.get("/", { schema: { tags } }, () => {
+  server.get("/", { schema: { tags } }, (_, rep) => {
+    rep.redirect("https://spendly-fe.vercel.app");
+
     return { message: "Hello World" };
   });
 
